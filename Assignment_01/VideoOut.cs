@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Assignment_01.Data;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +20,11 @@ namespace Assignment_01
 
         public void Rent()
         {
-            string json = File.ReadAllText(@"./Data/Videos.json");
-            var videos = JsonConvert.DeserializeObject<List<Video>>(json);
+            //string json = File.ReadAllText(@"./Data/Videos.json");
+            //var videos = JsonConvert.DeserializeObject<List<Video>>(json);
+
+            VideoDbContext dbContext = new VideoDbContext();
+            var videos = dbContext.Videos.ToList();
 
             var videoService = new VideoService();
             var mailService = new MailService();
@@ -42,6 +46,7 @@ namespace Assignment_01
 
             do
             {
+                videos=dbContext.Videos.ToList();
                 string input = messageService.ReadAndWrite(StaticMessage.Selection);
 
                 if (!input.IsValidSelection()) {
@@ -82,6 +87,47 @@ namespace Assignment_01
 
                 if (input == "2")
                     del(videos);
+
+                //Add a Video
+                if (input == "3")
+                {
+                    var vid = new Video();
+                    Console.Write("ID: ");
+                    vid.Id = Console.ReadLine();
+                    Console.Write("Author: ");
+                    vid.Author = Console.ReadLine();
+                    Console.Write("Description: ");
+                    vid.Description = Console.ReadLine();
+                    Console.Write("Title: ");
+                    vid.Title = Console.ReadLine();
+                    Console.Write("Year: ");
+                    vid.Year = Console.ReadLine();
+                    dbContext.Videos.Add(vid);
+                    dbContext.SaveChanges();
+                    dbContext.Videos.ToList().ForEach(p => { messageService.Write($"{hyphen}\nID:{p.Id,5}\tTITLE:{p.Title}\tAUTHOR:{p.Author}\tYEAR:{p.Year,4}\n{p.Description}"); });
+                    Console.WriteLine("Successfully added.");
+                }
+
+                //Delete a Video
+                if (input == "4") {
+                    Console.Write("Please provide an ID to delete: ");
+                    string tempID = Console.ReadLine();
+                    var vid = videos.FirstOrDefault(x => x.Id == tempID);
+                    dbContext.Videos.Remove(vid);
+                    dbContext.SaveChanges();
+                    dbContext.Videos.ToList().ForEach(p => { messageService.Write($"{hyphen}\nID:{p.Id,5}\tTITLE:{p.Title}\tAUTHOR:{p.Author}\tYEAR:{p.Year,4}\n{p.Description}"); });
+
+                    Console.WriteLine("Deleted Successfully.");
+                }
+
+                //filter by year
+                if (input == "5") {
+                    Console.Write("Please provide a year:");
+                    string tempYear=Console.ReadLine();
+                    var vid=videos.FindAll(x => x.Year == tempYear);
+                    vid.ForEach(p => { Console.Write($"{hyphen}\nID:{p.Id,5}\tTITLE:{p.Title}\tAUTHOR:{p.Author}\tYEAR:{p.Year,4}\n{p.Description}\n"); });    
+                }
+
                 do
                 {
                     string inputYesOrNo = messageService.ReadAndWrite(StaticMessage.Continue);
@@ -96,6 +142,8 @@ namespace Assignment_01
                         if (inputYesOrNo.ToLower() == "n") goto exit;
                     }
                 }
+
+                
                 while (true);
             }
             while (true);
